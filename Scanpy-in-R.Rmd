@@ -147,8 +147,39 @@ reticulate::py_install(py_pkgs)
 If you are not using **{renv}**/**{reticulate}** to manage your Python
 environment please install them in the way you would normally.
 
+Alternative approaches
+======================
+
+There are two approaches you can use to interact with Python packages from R,
+both of which we will describe here.
+
+The first approach is to perform our analysis in an [**R Markdown**][r-markdown] 
+document. **R Markdown** is a text-based document format that lets you combine
+text and code. When the document is rendered the code is evaluated and the
+results is included in the output document, which can be several different
+formats including HTML, PDF and DOCX. Although it has been primarily designed
+to be used with R code **R Markdown** supports "engines" for several programming
+languages including Python. **R Markdown** documents that include Python code
+maintain a single Python environment for the all the code chunks in a document.
+This lets us create a single document that contains native R **and** Python
+code and lets us transfer object between them as required.
+
+The second approach is to access Scanpy functions from R using the
+**{reticulate}** interface. While this means we can't copy Python code from
+examples directly it doesn't lock us into using **R Markdown** and may be easier
+for those who are comfortable with R code but unfamiliar with Python. It is also
+possible to use this approach inside an **R Markdown** document rather than
+using native Python code.
+
+If you are already using **R Markdown** documents for your analysis it likely
+makes sense for you to use that approach, otherwise the choice is up to you.
+Which approach you choose to use may depend on a range of factors including
+which programming language you are more comfortable with and how much of your
+analysis you intend to perform using either language.
+
 [scanpy-docs]: https://scanpy.readthedocs.io/en/latest/ "Scanpy documentation"
 [scanpy-pub]: https://doi.org/10.1186/s13059-017-1382-0 "Scanpy publication"
 [renv]: https://rstudio.github.io/renv/ "renv documentation"
 [reticulate]: https://rstudio.github.io/reticulate/ "reticulate documentation"
 [rpy2]: https://rpy2.github.io/ "rpy2 website"
+[r-markdown]: https://rmarkdown.rstudio.com/ "R Markdown website"

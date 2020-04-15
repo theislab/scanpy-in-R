@@ -444,6 +444,13 @@ install.packages(pkgs)</code></pre>
 </div>
 </div>
 </div>
+<div id="alternative-approaches" class="section level1">
+<h1>Alternative approaches</h1>
+<p>There are two approaches you can use to interact with Python packages from R, both of which we will describe here.</p>
+<p>The first approach is to perform our analysis in an <a href="https://rmarkdown.rstudio.com/" title="R Markdown website"><strong>R Markdown</strong></a> document. <strong>R Markdown</strong> is a text-based document format that lets you combine text and code. When the document is rendered the code is evaluated and the results is included in the output document, which can be several different formats including HTML, PDF and DOCX. Although it has been primarily designed to be used with R code <strong>R Markdown</strong> supports “engines” for several programming languages including Python. <strong>R Markdown</strong> documents that include Python code maintain a single Python environment for the all the code chunks in a document. This lets us create a single document that contains native R <strong>and</strong> Python code and lets us transfer object between them as required.</p>
+<p>The second approach is to access Scanpy functions from R using the <strong>{reticulate}</strong> interface. While this means we can’t copy Python code from examples directly it doesn’t lock us into using <strong>R Markdown</strong> and may be easier for those who are comfortable with R code but unfamiliar with Python. It is also possible to use this approach inside an <strong>R Markdown</strong> document rather than using native Python code.</p>
+<p>If you are already using <strong>R Markdown</strong> documents for your analysis it likely makes sense for you to use that approach, otherwise the choice is up to you. Which approach you choose to use may depend on a range of factors including which programming language you are more comfortable with and how much of your analysis you intend to perform using either language.</p>
+</div>
 
 
 
