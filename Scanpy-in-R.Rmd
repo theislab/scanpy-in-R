@@ -118,7 +118,9 @@ Use the following command to install the R packages used during this tutorial:
 ```{r r-packages, eval = FALSE}
 pkgs <- c(
     "renv",
-    "reticulate"
+    "reticulate",
+    "png",
+    "ggplot2"
 )
 
 # If you are using an {renv} environment
@@ -134,7 +136,9 @@ The following Python packages are required for this tutorial:
 
 ```{r py-packages, eval = FALSE}
 py_pkgs <- c(
-    "scanpy"
+    "scanpy",
+    "python-igraph",
+    "louvain"
 )
 ```
 
@@ -146,6 +150,16 @@ reticulate::py_install(py_pkgs)
 
 If you are not using **{renv}**/**{reticulate}** to manage your Python
 environment please install them in the way you would normally.
+
+### **{renv}** snapshot
+
+If you have chosen to use an **{renv}** environment you should run the
+`renv::snapshot()` command after installing packages. This records the changes
+you have made so they can be restored later if necessary.
+
+```{r snapshot, eval = FALSE}
+renv::snapshot()
+```
 
 Alternative approaches
 ======================
@@ -160,7 +174,7 @@ results is included in the output document, which can be several different
 formats including HTML, PDF and DOCX. Although it has been primarily designed
 to be used with R code **R Markdown** supports "engines" for several programming
 languages including Python. **R Markdown** documents that include Python code
-maintain a single Python environment for the all the code chunks in a document.
+maintain a single Python session for the all the code chunks in a document.
 This lets us create a single document that contains native R **and** Python
 code and lets us transfer object between them as required.
 
@@ -177,9 +191,139 @@ Which approach you choose to use may depend on a range of factors including
 which programming language you are more comfortable with and how much of your
 analysis you intend to perform using either language.
 
+The **R Markdown** approach
+===========================
+
+First let's work through the **R Markdown** approach. We won't cover the all the
+basics of **R Markdown** documents so if you haven't used them before you may
+want to work through an introductory tutorial first.
+
+We will start by loading some R libaries.
+
+```{r md-libs}
+library("reticulate")
+library("ggplot2")
+```
+
+We will also import Scanpy in a Python chunk. A Python chunk begins with
+```` ```{python} ```` instead of ```` ```{r} ````. If you are using RStudio you
+can easily create on by clickin `Insert > Python` in the **R Markdown** editor
+pane.
+
+```{python md-py-libs}
+import scanpy as sc
+```
+
+Load data
+---------
+
+As this tutorial focuses on the interaction between R and Scanpy rather than
+the features of the package itself we will work with the processed PBMC3K
+dataset. This is a dataset of around 3000 peripheral blood mononuclear cells
+that was produced by 10x Genomics and has been processed as described in the
+Scanpy [PBMC3K tutorial][pbmc3k-tutorial].
+
+> **NOTE:** Running this command will download the dataset to a `data/`
+> directory if it doesn't already exist.
+
+```{python md-load-data}
+adata = sc.datasets.pbmc3k_processed()
+```
+
+The data is returned as an [`AnnData`][anndata] object. This is similar to
+a `SingleCellExperiment` or `Seurat` object used by R packages and stores
+matrices of expression values as well as annotation for cells and features and
+various other data structures created during analysis such as embeddings and
+nearest neighbour graphs. A key difference is that `AnnData` matrices are
+transposed compared to those used by R packages, the rows represent cells and
+the columns represent features. Please refer to the
+[**anndata** documentation][anndata] for more details about this data structure.
+
+Let's have a look at what this one includes.
+
+```{python md-AnnData}
+adata
+```
+
+Using Scanpy functions
+----------------------
+
+With the **R Markdown** approach using Scanpy functions is easy. We simply
+create a new Python chunk and use standard Python commands. For example, let's
+plot a UMAP of the Louvain clustering already stored in the object:
+
+```{python md-umap}
+sc.pl.umap(adata, color='louvain')
+```
+
+We could also re-cluster the data at a higher resolution and re-plot the UMAP.
+We store the new clustering in an observation variable called "louvain_2".
+
+```{python md-high-res}
+sc.tl.louvain(adata, resolution=2, key_added='louvain_2')
+sc.pl.umap(adata, color='louvain_2')
+```
+
+Converting from Python to R
+---------------------------
+
+Python objects can be accessed from R using the special `py` variable (as long
+as we have loaded the **{reticulate}** package). This variable is accessed as a
+`list` where each item in the list is an object in the Python session. For 
+example let's create a list in Python:
+
+```{python md-list}
+a_list = ['My', 'list', 'of', 'things']
+print(a_list)
+```
+
+We can access that exact same list in R:
+
+```{r md-list-r}
+py$a_list
+```
+
+We can even modify the list in R...
+
+```{r md-list-modify}
+py$a_list[4] <- "words"
+```
+
+...and the changes are changes can be seen in Python.
+
+```{python md-list-changed}
+print(a_list)
+```
+
+For several common data structures the objects are automatically converted to
+their equivalent type in R.
+
+```{r md-list-type}
+class(py$a_list)
+```
+
+This is also true for some more complex data structures. For example, variables
+associated with observations (cells) are stored as a **pandas** `DataFrame` in
+our `AnnData` object but are converted to a `data.frame` in R.
+
+```{r md-obs-type}
+class(py$adata$obs)
+```
+
+We can use this object directly in our R session. For example let's plot the
+number of genes expressed per cell against the number of counts using
+**{ggplot2}**.
+
+```{r md-obs-plot}
+ggplot(py$adata$obs, aes(x = n_counts, y = n_genes, colour = louvain)) +
+    geom_point()
+```
+
 [scanpy-docs]: https://scanpy.readthedocs.io/en/latest/ "Scanpy documentation"
 [scanpy-pub]: https://doi.org/10.1186/s13059-017-1382-0 "Scanpy publication"
 [renv]: https://rstudio.github.io/renv/ "renv documentation"
 [reticulate]: https://rstudio.github.io/reticulate/ "reticulate documentation"
 [rpy2]: https://rpy2.github.io/ "rpy2 website"
 [r-markdown]: https://rmarkdown.rstudio.com/ "R Markdown website"
+[pbmc3k-tutorial]: https://scanpy-tutorials.readthedocs.io/en/latest/pbmc3k.html "Scanpy PBMC3K tutorial"
+[anndata]: https://anndata.readthedocs.io/en/stable/ "AnnData documentation"
