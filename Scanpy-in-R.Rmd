@@ -1,0 +1,154 @@
+---
+title: "Scanpy in R"
+output: html_document
+---
+
+What is Scanpy?
+===============
+
+Scanpy is a scalable Python toolkit for analyzing single-cell gene expression
+data. It includes functionality commonly used during an analysis of scRNA-seq
+data including quality control, clustering of cells and testing for marker
+genes. For more information please have a look at the
+[Scanpy documentation][scanpy-docs] or read the
+[associated publication][scanpy-pub].
+
+Why would I want to use it from R?
+==================================
+
+There are various reasons you may want to interact with the Scanpy package from
+R. You may already be using Scanpy for your project but want to use an R
+package for a section of your analysis or your project but be R based and you
+want to use some of Scanpy's functionality.
+
+What is covered in this tutorial?
+=================================
+
+This tutorial will cover how to set up a environment that lets you interact with
+Scanpy from R. It will demonstrate some of the functions in Scanpy but it won't
+cover everything the package can do or how best to use Scanpy for your analysis.
+For more details about what Scanpy can do please refer to the tutorials and
+other information in the [Scanpy documentation][scanpy-docs].
+
+Setting up
+==========
+
+To use Scanpy from R you will (unsurprisingly) need both an R and Python
+environment set up. If you are mostly an R user the easiest approach is to use
+the **{renv}** package to setup and manage these environments. This is what we
+will do for this tutorial. If you are primarily a Python user you may find it
+easier to create your own **conda** or **virtualenv** environment. The main
+thing is to have both R and Python available (with the required packages
+installed), however it is highly recommended you use some kind of environment
+system to improve the reproducibilty of your project.
+
+Using **{renv}**
+----------------
+
+The [**{renv}**][renv] package helps you reproducible environments for an R
+project. These environments are designed to be isolated, portable and
+reproducible. This is similar to **conda** environments but they are confined
+to a specific project directory. Please refer to the
+[**{renv}** documentation][renv] for more details.
+
+### Creating the R environment
+
+To use **{renv}** we first need to make sure it is installed:
+
+```{r install-env, eval = FALSE}
+install.packages("renv")
+```
+
+We can then ask **{renv}** to create an envronment for us:
+
+```{r renv-init, eval = FALSE}
+renv::init()
+```
+
+This command creates a new `renv/` folder where your installed packages (and
+some other things) will be stored and a `renv.lock` file which will be used to
+record the package versions. It will also create (or modify) the `.Rprofile`
+file to make sure the environment is activated. Once we have this environment
+activated we can install/remove packages  but they will be kept separate from
+the global package environment. If you already have files with R code in this 
+directory **{renv}** will attempt to find which packages you are using and
+install them into your new library. By default `renv::init()` will create the 
+environment in the current working directory but you can also tell it to create
+it somewhere else by setting the `project` argument.
+
+### Creating the Python environment
+
+As we are going to be using Python we need to make sure we have the
+[**{reticulate}**][reticulate] package installed in our new environment:
+
+```{r intall-reticulate, eval = FALSE}
+renv::install("reticulate")
+```
+
+This package provides a set of tools for interoperability between Python and R
+(the Python equivalent is the [**rpy2** package][rpy2]). This includes calling
+Python functions from R, translating between Python and R objects and managing
+Python environments from R. For more details see the
+[**{reticulate}** documentation][reticulate].
+
+Once **{reticulate}** is installed we can tell **{renv}** that we also want to
+use a Python evironment:
+
+```{r use-python, eval = FALSE}
+renv::use_python()
+```
+
+Unless you specify a Python version with the `python` argument or the
+`RETICULATE_PYTHON` environment variable is set your default Python installation
+will be used. By default yhe type of environment created depends on your
+operating system (**virtualenv** on Linux/macOS or **conda** on Windows) but if
+you have a preference this can be controlled using the `type` argument.
+
+If you choose not to use **{renv}** a Python environment can also be created
+using the `reticulate::use_python()` and 
+`reticulate::use_virtualenv()`/`reticulate::use_condaenv()` functions.
+
+Installing packages
+-------------------
+
+### R packages
+
+Use the following command to install the R packages used during this tutorial:
+
+```{r r-packages, eval = FALSE}
+pkgs <- c(
+    "renv",
+    "reticulate"
+)
+
+# If you are using an {renv} environment
+renv::install(pkgs)
+
+# Otherwise do it the normal way
+install.packages(pkgs)
+```
+
+### Python packages
+
+The following Python packages are required for this tutorial:
+
+```{r py-packages, eval = FALSE}
+py_pkgs <- c(
+    "scanpy"
+)
+```
+
+To install them from R we can use `reticulate::py_install()`:
+
+```{r py-pkgs-install, eval = FALSE}
+reticulate::py_install(py_pkgs)
+```
+
+If you are not using **{renv}**/**{reticulate}** to manage your Python
+environment please install them in the way you would normally.
+
+[scanpy-docs]: https://scanpy.readthedocs.io/en/latest/ "Scanpy documentation"
+[scanpy-pub]: https://doi.org/10.1186/s13059-017-1382-0 "Scanpy publication"
+[renv]: https://rstudio.github.io/renv/ "renv documentation"
+[reticulate]: https://rstudio.github.io/reticulate/ "reticulate documentation"
+[rpy2]: https://rpy2.github.io/ "rpy2 website"
