@@ -1,0 +1,29 @@
+{
+  "R": {
+    "Version": "3.6.2",
+    "Repositories": [
+      {
+        "Name": "CRAN",
+        "URL": "https://cran.rstudio.com"
+      }
+    ]
+  },
+  "Packages": {
+    "renv": {
+      "Package": "renv",
+      "Version": "0.9.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "RemoteType": "standard",
+      "RemoteRef": "renv",
+      "RemoteRepos": "https://cran.rstudio.com/",
+      "RemotePkgType": "macos",
+      "RemoteSha": "0.9.2",
+      "Hash": "5181d5f316c7a6589219866d640e004c"
+    }
+  },
+  "Python": {
+    "Version": "3.7.3",
+    "Type": "conda"
+  }
+}
