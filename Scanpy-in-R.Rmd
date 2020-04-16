@@ -120,7 +120,13 @@ pkgs <- c(
     "renv",
     "reticulate",
     "png",
-    "ggplot2"
+    "ggplot2",
+    "BiocManager"
+)
+
+bioc_pkgs <- c(
+    "SingleCellExperiment",
+    "scater"
 )
 
 # If you are using an {renv} environment
@@ -128,6 +134,9 @@ renv::install(pkgs)
 
 # Otherwise do it the normal way
 install.packages(pkgs)
+
+# Install Bioconductor packages
+BiocManager::install(bioc_pkgs, update = FALSE)
 ```
 
 ### Python packages
@@ -201,8 +210,12 @@ want to work through an introductory tutorial first.
 We will start by loading some R libaries.
 
 ```{r md-libs}
-library("reticulate")
-library("ggplot2")
+suppressPackageStartupMessages({
+    library("reticulate")
+    library("ggplot2")
+    library("SingleCellExperiment")
+    library("scater")
+})
 ```
 
 We will also import Scanpy in a Python chunk. A Python chunk begins with
@@ -319,6 +332,44 @@ ggplot(py$adata$obs, aes(x = n_counts, y = n_genes, colour = louvain)) +
     geom_point()
 ```
 
+### Creating a `SingleCellExperiment` object from `AnnData`
+
+Many of the R packages for scRNA-seq analysis are part of the 
+[Bioconductor][bioconductor] project and use the [`SingleCellExperiment`][sce] 
+object. To make use of these packages you may need to create one of these
+objects. Many of the parts of  `SingleCellExperiment` and `AnnData` objects are 
+equivalent and can be converted directly.
+
+```{r md-sce}
+sce <- SingleCellExperiment(
+    assays      = list(logcounts = t(py$adata$X)),
+    colData     = py$adata$obs,
+    rowData     = py$adata$var,
+    reducedDims = list(umap = py$adata$obsm["X_umap"])
+)
+sce
+```
+
+Note that we haven't copied everything to our new `SingleCellExperiment` but
+only what is directly mappable and most likely to be useful. If you need some of
+the other information stored in the `AnnData` object it should be possible to
+transfer that as well but you would need to decide where it best fits in the
+`SingleCellExperiment`. We have also made some decisions about how to name
+things. For example we have stored the main `X` expression matrix in the
+`logcounts` assay as this represents a similar transformation of the expression
+data and functions in some packages expect this assay to exist.
+
+To show that we can use this object let's plot our UMAP again in R using the
+[**{scater}**][scater] package.
+
+```{r md-r-umap}
+plotReducedDim(sce, "umap", colour_by = "louvain")
+```
+
+Because the embedding has already been calculated in Scanpy we use the
+`scater::plotReducedDim()` function here but we could also ask **{scater}**
+to computer new embeddings for us.
+
 [scanpy-docs]: https://scanpy.readthedocs.io/en/latest/ "Scanpy documentation"
 [scanpy-pub]: https://doi.org/10.1186/s13059-017-1382-0 "Scanpy publication"
 [renv]: https://rstudio.github.io/renv/ "renv documentation"
@@ -327,3 +378,6 @@ ggplot(py$adata$obs, aes(x = n_counts, y = n_genes, colour = louvain)) +
 [r-markdown]: https://rmarkdown.rstudio.com/ "R Markdown website"
 [pbmc3k-tutorial]: https://scanpy-tutorials.readthedocs.io/en/latest/pbmc3k.html "Scanpy PBMC3K tutorial"
 [anndata]: https://anndata.readthedocs.io/en/stable/ "AnnData documentation"
+[bioconductor]: https://bioconductor.org/ "Bioconductor website"
+[sce]: https://www.bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html "SingleCellExperiment package on Bioconductor"
+[scater]: https://www.bioconductor.org/packages/release/bioc/html/scater.html "scater package on Bioconductor"
