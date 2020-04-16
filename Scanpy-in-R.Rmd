@@ -427,6 +427,87 @@ seurat <- SetIdent(seurat, value = "louvain")
 DimPlot(seurat, reduction = "umap")
 ```
 
+Converting from R to Python
+---------------------------
+
+The reverse conversion can be done in a similar way. Just like there is a
+special `py` variable in the R session there is a special `r` variable in the
+Python section. Here is a quick example:
+
+```{r md-r-list2}
+another_list <- c("Some", "more", "things")
+```
+
+In Python the list looks like this.
+
+```{python}
+r.another_list
+```
+
+Notice that we use the `.` operator in Python rather than the `$` operator we
+used in R.
+
+### Creating `AnnData` from `SingleCellExperiment`
+
+Let's pretend we have completed some analysis in our R session and we want to
+transfer the results back to our `AnnData` object in the Python section.
+
+Because some of the parts of the `SingleCellExperiment` use non-standard classes
+(such as the Bioconductor `DataFrame` class) that can't be automatically
+converted by **{reticulate}** it is easiest to first extract the parts we want.
+
+```{r md-sce-extract}
+exprs <- assay(sce, "logcounts")
+col_data <- as.data.frame(colData(sce))
+row_data <- as.data.frame(rowData(sce))
+embedding <- reducedDim(sce, "umap")
+```
+
+We can then had any variables we want to our `AnnData` object in Python:
+
+```{python md-sce-add}
+adata.obs['sce_louvain'] = r.col_data['louvain']
+```
+
+We could also create a new `AnnData` object by transferring everything we
+extracted from the `SingleCellExperiment`:
+
+```{python md-adata-sce}
+adata_sce = sc.AnnData(X = r.exprs.T, obs = r.col_data, var = r.row_data)
+adata_sce.obsm['umap'] = r.embedding
+```
+
+This new `AnnData` can also be used with Scanpy.
+
+```{python md-adata-sce-umap}
+sc.pl.umap(adata_sce, color='louvain')
+```
+
+### Creating `AnnData` from `Seurat`
+
+The process for creating an `AnnData` object from a `Seurat` object is very
+similar. First we extract the parts we want:
+
+```{r md-seurat-extract}
+exprs <- GetAssayData(seurat)
+meta <- seurat[[]]
+feature_meta <- GetAssay(seurat)[[]]
+embedding <- Embeddings(seurat, "umap")
+```
+
+Then we can construct a new `AnnData` in a Python chunk.
+
+```{python md-AnnData-Seurat}
+adata_seurat = sc.AnnData(X = r.exprs.T, obs = r.meta, var = r.feature_meta)
+adata_seurat.obsm['umap'] = r.embedding
+```
+
+This object should also be compatible with Scanpy functions.
+
+```{python}
+sc.pl.umap(adata_seurat, color='louvain')
+```
+
 [scanpy-docs]: https://scanpy.readthedocs.io/en/latest/ "Scanpy documentation"
 [scanpy-pub]: https://doi.org/10.1186/s13059-017-1382-0 "Scanpy publication"
 [renv]: https://rstudio.github.io/renv/ "renv documentation"
