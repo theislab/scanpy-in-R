@@ -121,12 +121,14 @@ pkgs <- c(
     "reticulate",
     "png",
     "ggplot2",
-    "BiocManager"
+    "BiocManager",
+    "Seurat"
 )
 
 bioc_pkgs <- c(
     "SingleCellExperiment",
-    "scater"
+    "scater",
+    "multtest"
 )
 
 # If you are using an {renv} environment
@@ -215,6 +217,7 @@ suppressPackageStartupMessages({
     library("ggplot2")
     library("SingleCellExperiment")
     library("scater")
+    library("Seurat")
 })
 ```
 
@@ -370,6 +373,60 @@ Because the embedding has already been calculated in Scanpy we use the
 `scater::plotReducedDim()` function here but we could also ask **{scater}**
 to computer new embeddings for us.
 
+### Creating a `Seurat` object from `AnnData`
+
+The other object that is often used by R scRNA-seq analysis packages is the
+[`Seurat`][seurat] object. We can create one of these in a similar way. Please
+see the [**{Seurat}** documentation][seurat] for more details about this object.
+
+```{r md-seurat}
+# Get the expression matrix
+exprs <- t(py$adata$X)
+colnames(exprs) <- py$adata$obs_names$to_list()
+rownames(exprs) <- py$adata$var_names$to_list()
+# Create the Seurat object
+seurat <- CreateSeuratObject(exprs)
+# Set the expression assay
+seurat <- SetAssayData(seurat, "data", exprs)
+# Add observation metadata
+seurat <- AddMetaData(seurat, py$adata$obs)
+# Add fetaure metadata
+seurat[["RNA"]][["n_cells"]] <- py$adata$var["n_cells"]
+# Add embedding
+embedding <- py$adata$obsm["X_umap"]
+rownames(embedding) <- py$adata$obs_names$to_list()
+colnames(embedding) <- c("umap_1", "umap_2")
+seurat[["umap"]] <- CreateDimReducObject(embedding, key = "umap_")
+
+seurat
+```
+
+The process for creating a `Seurat` object is more complex that creating a
+`SingleCellExperiment` and requires creating several other objects. The
+`Seurat::CreateSeuratObject()` function expects a single matrix that contains
+raw count data. We don't have that here so we use the normalised expression
+matrix instead. If we did have counts it would be better to use those. `Seurat`
+objects can have multiple "assays" (the default is "RNA") which can each have
+three data representations ("counts", "data" and "scale.data"). We have placed
+the expression matrix in the "data" slot here but which is most appropriate
+depends on the data you are copying. Metadata for observations can be added
+using the `Seurat::AddMetaData()` function but feature metadata must be added
+manually to the correct assay. We also add a `DimReduc` object holding the UMAP
+embedding.
+
+> **NOTE:** The `Seurat::ReadH5AD()` function can be used to read the `.h5ad`
+> format commonly used to save `AnnData` objects to disk. This is another way
+> to convert between the formats and will produce a more complete conversion
+> at the cost of writing to disk.
+
+The functions in **{Seurat}** (and related packages) can now be used with this
+object. Let's recreate our UMAP plot:
+
+```{r md-seurat-umap}
+seurat <- SetIdent(seurat, value = "louvain")
+DimPlot(seurat, reduction = "umap")
+```
+
 [scanpy-docs]: https://scanpy.readthedocs.io/en/latest/ "Scanpy documentation"
 [scanpy-pub]: https://doi.org/10.1186/s13059-017-1382-0 "Scanpy publication"
 [renv]: https://rstudio.github.io/renv/ "renv documentation"
@@ -381,3 +438,4 @@ to computer new embeddings for us.
 [bioconductor]: https://bioconductor.org/ "Bioconductor website"
 [sce]: https://www.bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html "SingleCellExperiment package on Bioconductor"
 [scater]: https://www.bioconductor.org/packages/release/bioc/html/scater.html "scater package on Bioconductor"
+[seurat]: https://satijalab.org/seurat/ "Seurat website"
