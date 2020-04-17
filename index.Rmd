@@ -7,37 +7,81 @@ output:
     css: custom.css
 ---
 
-What is Scanpy?
-===============
+Introduction
+============
 
-Scanpy is a scalable Python toolkit for analyzing single-cell gene expression
-data. It includes functionality commonly used during an analysis of scRNA-seq
-data including quality control, clustering of cells and testing for marker
-genes. For more information please have a look at the
+What is Scanpy?
+---------------
+
+The ***scanpy*** package is a scalable Python toolkit for analyzing single-cell
+gene expression data. It includes functionality commonly used during an analysis
+of scRNA-seq data including quality control, clustering of cells and testing for
+marker genes. For more information please have a look at the
 [Scanpy documentation][scanpy-docs] or read the
 [associated publication][scanpy-pub].
 
 Why would I want to use it from R?
-==================================
+----------------------------------
 
-There are various reasons you may want to interact with the Scanpy package from
-R. You may already be using Scanpy for your project but want to use an R
+There are various reasons you may want to interact with ***scanpy*** from
+R. You may already be using ***scanpy*** for your project but want to use an R
 package for a section of your analysis or your project but be R based and you
 want to use some of Scanpy's functionality.
 
 What is covered in this tutorial?
-=================================
+---------------------------------
 
 This tutorial will cover how to set up a environment that lets you interact with
-Scanpy from R. It will demonstrate some of the functions in Scanpy but it won't
-cover everything the package can do or how best to use Scanpy for your analysis.
-For more details about what Scanpy can do please refer to the tutorials and
-other information in the [Scanpy documentation][scanpy-docs].
+***scanpy*** from R. It will demonstrate some of the functions in ***scanpy***
+but it won't cover everything the package can do or how best to use ***scanpy***
+for your analysis. For more details about what ***scanpy*** can do please refer
+to the tutorials and other information in the
+[Scanpy documentation][scanpy-docs].
+
+Formatting
+----------
+
+This tutorial tries to use some formatting conventions to avoid confusion.
+Perhaps the most important is different coloured backgrounds to indicate R and
+Python code chunks.
+
+An R code chunk looks like this:
+
+```{r r-chunk}
+# Some R code
+```
+
+And a Python code chunk looks like this:
+
+```{python py-example}
+# Some Python code
+```
+
+The output of code chunks will have a grey background regardless of the
+programming language:
+
+```{r r-output}
+print("Some R output")
+```
+
+```{python py-output}
+print("Some Python output")
+```
+
+We also try to use these conventions in the text:
+
+* **{package}** - An R package
+* `package::function()` - A function in an R package
+* ***package*** - A Python package
+* `package.function()` - A function in a Python package
+* **Emphasised** - Some other important concept
+* `code` - Other parts of code including objects, variables etc. This is also
+  used for files or directories.
 
 Setting up
 ==========
 
-To use Scanpy from R you will (unsurprisingly) need both an R and Python
+To use ***scanpy*** from R you will (unsurprisingly) need both an R and Python
 environment set up. If you are mostly an R user the easiest approach is to use
 the **{renv}** package to setup and manage these environments. This is what we
 will do for this tutorial. If you are primarily a Python user you may find it
@@ -90,7 +134,7 @@ renv::install("reticulate")
 ```
 
 This package provides a set of tools for interoperability between Python and R
-(the Python equivalent is the [**rpy2** package][rpy2]). This includes calling
+(the Python equivalent is the [***rpy2*** package][rpy2]). This includes calling
 Python functions from R, translating between Python and R objects and managing
 Python environments from R. For more details see the
 [**{reticulate}** documentation][reticulate].
@@ -193,7 +237,7 @@ maintain a single Python session for the all the code chunks in a document.
 This lets us create a single document that contains native R **and** Python
 code and lets us transfer object between them as required.
 
-The second approach is to access Scanpy functions from R using the
+The second approach is to access ***scanpy*** functions from R using the
 **{reticulate}** interface. While this means we can't copy Python code from
 examples directly it doesn't lock us into using **R Markdown** and may be easier
 for those who are comfortable with R code but unfamiliar with Python. It is also
@@ -225,7 +269,7 @@ suppressPackageStartupMessages({
 })
 ```
 
-We will also import Scanpy in a Python chunk. A Python chunk begins with
+We will also import ***scanpy*** in a Python chunk. A Python chunk begins with
 ```` ```{python} ```` instead of ```` ```{r} ````. If you are using RStudio you
 can easily create on by clickin `Insert > Python` in the **R Markdown** editor
 pane.
@@ -237,11 +281,11 @@ import scanpy as sc
 Load data
 ---------
 
-As this tutorial focuses on the interaction between R and Scanpy rather than
-the features of the package itself we will work with the processed PBMC3K
+As this tutorial focuses on the interaction between R and ***scanpy*** rather
+than the features of the package itself we will work with the processed PBMC3K
 dataset. This is a dataset of around 3000 peripheral blood mononuclear cells
 that was produced by 10x Genomics and has been processed as described in the
-Scanpy [PBMC3K tutorial][pbmc3k-tutorial].
+***scanpy*** [PBMC3K tutorial][pbmc3k-tutorial].
 
 > **NOTE:** Running this command will download the dataset to a `data/`
 > directory if it doesn't already exist.
@@ -265,10 +309,10 @@ Let's have a look at what this one includes.
 adata
 ```
 
-Using Scanpy functions
+Using ***scanpy*** functions
 ----------------------
 
-With the **R Markdown** approach using Scanpy functions is easy. We simply
+With the **R Markdown** approach using ***scanpy*** functions is easy. We simply
 create a new Python chunk and use standard Python commands. For example, let's
 plot a UMAP of the Louvain clustering already stored in the object:
 
@@ -288,8 +332,8 @@ Converting from Python to R
 ---------------------------
 
 Python objects can be accessed from R using the special `py` variable (as long
-as we have loaded the **{reticulate}** package). This variable is accessed as a
-`list` where each item in the list is an object in the Python session. For 
+as we have loaded the **{reticulate}** package). This variable is accessed as an
+R `list` where each item in the list is an object in the Python session. For 
 example let's create a list in Python:
 
 ```{python md-list}
@@ -323,7 +367,7 @@ class(py$a_list)
 ```
 
 This is also true for some more complex data structures. For example, variables
-associated with observations (cells) are stored as a **pandas** `DataFrame` in
+associated with observations (cells) are stored as a ***pandas*** `DataFrame` in
 our `AnnData` object but are converted to a `data.frame` in R.
 
 ```{r md-obs-type}
@@ -373,7 +417,7 @@ To show that we can use this object let's plot our UMAP again in R using the
 plotReducedDim(sce, "umap", colour_by = "louvain")
 ```
 
-Because the embedding has already been calculated in Scanpy we use the
+Because the embedding has already been calculated in ***scanpy*** we use the
 `scater::plotReducedDim()` function here but we could also ask **{scater}**
 to computer new embeddings for us.
 
@@ -458,7 +502,8 @@ transfer the results back to our `AnnData` object in the Python section.
 
 Because some of the parts of the `SingleCellExperiment` use non-standard classes
 (such as the Bioconductor `DataFrame` class) that can't be automatically
-converted by **{reticulate}** it is easiest to first extract the parts we want.
+converted by **{reticulate}** it is easiest to first extract the parts we want
+in R.
 
 ```{r md-sce-extract}
 exprs <- assay(sce, "logcounts")
@@ -481,7 +526,7 @@ adata_sce = sc.AnnData(X = r.exprs.T, obs = r.col_data, var = r.row_data)
 adata_sce.obsm['umap'] = r.embedding
 ```
 
-This new `AnnData` can also be used with Scanpy.
+This new `AnnData` can also be used with ***scanpy***
 
 ```{python md-adata-sce-umap}
 sc.pl.umap(adata_sce, color='louvain')
@@ -506,7 +551,7 @@ adata_seurat = sc.AnnData(X = r.exprs.T, obs = r.meta, var = r.feature_meta)
 adata_seurat.obsm['umap'] = r.embedding
 ```
 
-This object should also be compatible with Scanpy functions.
+This object should also be compatible with ***scanpy*** functions.
 
 ```{python md-AnnData-Seurat-umap}
 sc.pl.umap(adata_seurat, color='louvain')
@@ -515,7 +560,7 @@ sc.pl.umap(adata_seurat, color='louvain')
 The **{reticulate}** approach
 =============================
 
-The **{reticulate}** approach involves calling Scanpy functions from an R
+The **{reticulate}** approach involves calling ***scanpy*** functions from an R
 session. This means that we keep everything inside a single R session and only
 need to write R code but the downside is we cannot directly copy examples that
 have been written in Python.
@@ -542,9 +587,9 @@ sc <- import("scanpy")
 Load data
 ---------
 
-To load the dataset we will use the Scanpy `pbmc3k_processed()` function. To use
-this from R the syntax is mostly the same but we replace the "." characters
-between modules with the "$" operator in R.
+To load the dataset we will use the `scanpy.pbmc3k_processed()` function. To use
+this from R the syntax is mostly the same but we replace the `.` characters
+between modules with the `$` operator in R.
 
 ```{r ret-load-adata}
 adata <- sc$datasets$pbmc3k_processed()
@@ -557,11 +602,11 @@ corresponding Python chunk in the **R Markdown** approach.
 adata
 ```
 
-Using Scanpy functions
+Using ***scanpy*** functions
 ----------------------
 
-Other Scanpy functions can be called from R in the same way. Here is an example
-adding another clustering resolution.
+Other ***scanpy*** functions can be called from R in the same way. Here is an
+example adding another clustering resolution.
 
 ```{r ret-umap}
 sc$tl$louvain(adata, resolution = 2, key_added = "louvain_2")
@@ -663,7 +708,7 @@ Converting from R to Python
 ---------------------------
 
 Converting from R to Python is a bit different than when using the
-**{R Markdown}** approach as we can do everything in the R session in many
+**R Markdown** approach as we can do everything in the R session in many
 cases.
 
 ```{r ret-python-convert}
