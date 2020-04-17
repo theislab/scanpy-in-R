@@ -1,0 +1,727 @@
+---
+title: "Scanpy in R"
+output:
+  rmdformats::readthedown:
+    highlight: pygments
+    number_sections: true
+    css: custom.css
+---
+
+What is Scanpy?
+===============
+
+Scanpy is a scalable Python toolkit for analyzing single-cell gene expression
+data. It includes functionality commonly used during an analysis of scRNA-seq
+data including quality control, clustering of cells and testing for marker
+genes. For more information please have a look at the
+[Scanpy documentation][scanpy-docs] or read the
+[associated publication][scanpy-pub].
+
+Why would I want to use it from R?
+==================================
+
+There are various reasons you may want to interact with the Scanpy package from
+R. You may already be using Scanpy for your project but want to use an R
+package for a section of your analysis or your project but be R based and you
+want to use some of Scanpy's functionality.
+
+What is covered in this tutorial?
+=================================
+
+This tutorial will cover how to set up a environment that lets you interact with
+Scanpy from R. It will demonstrate some of the functions in Scanpy but it won't
+cover everything the package can do or how best to use Scanpy for your analysis.
+For more details about what Scanpy can do please refer to the tutorials and
+other information in the [Scanpy documentation][scanpy-docs].
+
+Setting up
+==========
+
+To use Scanpy from R you will (unsurprisingly) need both an R and Python
+environment set up. If you are mostly an R user the easiest approach is to use
+the **{renv}** package to setup and manage these environments. This is what we
+will do for this tutorial. If you are primarily a Python user you may find it
+easier to create your own **conda** or **virtualenv** environment. The main
+thing is to have both R and Python available (with the required packages
+installed), however it is highly recommended you use some kind of environment
+system to improve the reproducibilty of your project.
+
+Using **{renv}**
+----------------
+
+The [**{renv}**][renv] package helps you reproducible environments for an R
+project. These environments are designed to be isolated, portable and
+reproducible. This is similar to **conda** environments but they are confined
+to a specific project directory. Please refer to the
+[**{renv}** documentation][renv] for more details.
+
+### Creating the R environment
+
+To use **{renv}** we first need to make sure it is installed:
+
+```{r install-env, eval = FALSE}
+install.packages("renv")
+```
+
+We can then ask **{renv}** to create an envronment for us:
+
+```{r renv-init, eval = FALSE}
+renv::init()
+```
+
+This command creates a new `renv/` folder where your installed packages (and
+some other things) will be stored and a `renv.lock` file which will be used to
+record the package versions. It will also create (or modify) the `.Rprofile`
+file to make sure the environment is activated. Once we have this environment
+activated we can install/remove packages  but they will be kept separate from
+the global package environment. If you already have files with R code in this 
+directory **{renv}** will attempt to find which packages you are using and
+install them into your new library. By default `renv::init()` will create the 
+environment in the current working directory but you can also tell it to create
+it somewhere else by setting the `project` argument.
+
+### Creating the Python environment
+
+As we are going to be using Python we need to make sure we have the
+[**{reticulate}**][reticulate] package installed in our new environment:
+
+```{r intall-reticulate, eval = FALSE}
+renv::install("reticulate")
+```
+
+This package provides a set of tools for interoperability between Python and R
+(the Python equivalent is the [**rpy2** package][rpy2]). This includes calling
+Python functions from R, translating between Python and R objects and managing
+Python environments from R. For more details see the
+[**{reticulate}** documentation][reticulate].
+
+Once **{reticulate}** is installed we can tell **{renv}** that we also want to
+use a Python evironment:
+
+```{r use-python, eval = FALSE}
+renv::use_python()
+```
+
+Unless you specify a Python version with the `python` argument or the
+`RETICULATE_PYTHON` environment variable is set your default Python installation
+will be used. By default yhe type of environment created depends on your
+operating system (**virtualenv** on Linux/macOS or **conda** on Windows) but if
+you have a preference this can be controlled using the `type` argument.
+
+If you choose not to use **{renv}** a Python environment can also be created
+using the `reticulate::use_python()` and 
+`reticulate::use_virtualenv()`/`reticulate::use_condaenv()` functions.
+
+Installing packages
+-------------------
+
+### R packages
+
+Use the following command to install the R packages used during this tutorial:
+
+```{r r-packages, eval = FALSE}
+pkgs <- c(
+    "renv",
+    "reticulate",
+    "png",
+    "ggplot2",
+    "BiocManager",
+    "Seurat"
+)
+
+bioc_pkgs <- c(
+    "SingleCellExperiment",
+    "scater",
+    "multtest"
+)
+
+# If you are using an {renv} environment
+renv::install(pkgs)
+
+# Otherwise do it the normal way
+install.packages(pkgs)
+
+# Install Bioconductor packages
+BiocManager::install(bioc_pkgs, update = FALSE)
+```
+
+### Python packages
+
+The following Python packages are required for this tutorial:
+
+```{r py-packages, eval = FALSE}
+py_pkgs <- c(
+    "scanpy",
+    "python-igraph",
+    "louvain"
+)
+```
+
+To install them from R we can use `reticulate::py_install()`:
+
+```{r py-pkgs-install, eval = FALSE}
+reticulate::py_install(py_pkgs)
+```
+
+If you are not using **{renv}**/**{reticulate}** to manage your Python
+environment please install them in the way you would normally.
+
+### **{renv}** snapshot
+
+If you have chosen to use an **{renv}** environment you should run the
+`renv::snapshot()` command after installing packages. This records the changes
+you have made so they can be restored later if necessary.
+
+```{r snapshot, eval = FALSE}
+renv::snapshot()
+```
+
+Alternative approaches
+======================
+
+There are two approaches you can use to interact with Python packages from R,
+both of which we will describe here.
+
+The first approach is to perform our analysis in an [**R Markdown**][r-markdown] 
+document. **R Markdown** is a text-based document format that lets you combine
+text and code. When the document is rendered the code is evaluated and the
+results is included in the output document, which can be several different
+formats including HTML, PDF and DOCX. Although it has been primarily designed
+to be used with R code **R Markdown** supports "engines" for several programming
+languages including Python. **R Markdown** documents that include Python code
+maintain a single Python session for the all the code chunks in a document.
+This lets us create a single document that contains native R **and** Python
+code and lets us transfer object between them as required.
+
+The second approach is to access Scanpy functions from R using the
+**{reticulate}** interface. While this means we can't copy Python code from
+examples directly it doesn't lock us into using **R Markdown** and may be easier
+for those who are comfortable with R code but unfamiliar with Python. It is also
+possible to use this approach inside an **R Markdown** document rather than
+using native Python code.
+
+If you are already using **R Markdown** documents for your analysis it likely
+makes sense for you to use that approach, otherwise the choice is up to you.
+Which approach you choose to use may depend on a range of factors including
+which programming language you are more comfortable with and how much of your
+analysis you intend to perform using either language.
+
+The **R Markdown** approach
+===========================
+
+First let's work through the **R Markdown** approach. We won't cover the all the
+basics of **R Markdown** documents so if you haven't used them before you may
+want to work through an introductory tutorial first.
+
+We will start by loading some R libaries.
+
+```{r md-libs}
+suppressPackageStartupMessages({
+    library("reticulate")
+    library("ggplot2")
+    library("SingleCellExperiment")
+    library("scater")
+    library("Seurat")
+})
+```
+
+We will also import Scanpy in a Python chunk. A Python chunk begins with
+```` ```{python} ```` instead of ```` ```{r} ````. If you are using RStudio you
+can easily create on by clickin `Insert > Python` in the **R Markdown** editor
+pane.
+
+```{python md-py-libs}
+import scanpy as sc
+```
+
+Load data
+---------
+
+As this tutorial focuses on the interaction between R and Scanpy rather than
+the features of the package itself we will work with the processed PBMC3K
+dataset. This is a dataset of around 3000 peripheral blood mononuclear cells
+that was produced by 10x Genomics and has been processed as described in the
+Scanpy [PBMC3K tutorial][pbmc3k-tutorial].
+
+> **NOTE:** Running this command will download the dataset to a `data/`
+> directory if it doesn't already exist.
+
+```{python md-load-data}
+adata = sc.datasets.pbmc3k_processed()
+```
+
+The data is returned as an [`AnnData`][anndata] object. This is similar to
+a `SingleCellExperiment` or `Seurat` object used by R packages and stores
+matrices of expression values as well as annotation for cells and features and
+various other data structures created during analysis such as embeddings and
+nearest neighbour graphs. A key difference is that `AnnData` matrices are
+transposed compared to those used by R packages, the rows represent cells and
+the columns represent features. Please refer to the
+[**anndata** documentation][anndata] for more details about this data structure.
+
+Let's have a look at what this one includes.
+
+```{python md-AnnData}
+adata
+```
+
+Using Scanpy functions
+----------------------
+
+With the **R Markdown** approach using Scanpy functions is easy. We simply
+create a new Python chunk and use standard Python commands. For example, let's
+plot a UMAP of the Louvain clustering already stored in the object:
+
+```{python md-umap}
+sc.pl.umap(adata, color='louvain')
+```
+
+We could also re-cluster the data at a higher resolution and re-plot the UMAP.
+We store the new clustering in an observation variable called "louvain_2".
+
+```{python md-high-res}
+sc.tl.louvain(adata, resolution=2, key_added='louvain_2')
+sc.pl.umap(adata, color='louvain_2')
+```
+
+Converting from Python to R
+---------------------------
+
+Python objects can be accessed from R using the special `py` variable (as long
+as we have loaded the **{reticulate}** package). This variable is accessed as a
+`list` where each item in the list is an object in the Python session. For 
+example let's create a list in Python:
+
+```{python md-list}
+a_list = ['My', 'list', 'of', 'things']
+print(a_list)
+```
+
+We can access that exact same list in R:
+
+```{r md-list-r}
+py$a_list
+```
+
+We can even modify the list in R...
+
+```{r md-list-modify}
+py$a_list[4] <- "words"
+```
+
+...and the changes are changes can be seen in Python.
+
+```{python md-list-changed}
+print(a_list)
+```
+
+For several common data structures the objects are automatically converted to
+their equivalent type in R.
+
+```{r md-list-type}
+class(py$a_list)
+```
+
+This is also true for some more complex data structures. For example, variables
+associated with observations (cells) are stored as a **pandas** `DataFrame` in
+our `AnnData` object but are converted to a `data.frame` in R.
+
+```{r md-obs-type}
+class(py$adata$obs)
+```
+
+We can use this object directly in our R session. For example let's plot the
+number of genes expressed per cell against the number of counts using
+**{ggplot2}**.
+
+```{r md-obs-plot}
+ggplot(py$adata$obs, aes(x = n_counts, y = n_genes, colour = louvain)) +
+    geom_point()
+```
+
+### Creating a `SingleCellExperiment` object from `AnnData`
+
+Many of the R packages for scRNA-seq analysis are part of the 
+[Bioconductor][bioconductor] project and use the [`SingleCellExperiment`][sce] 
+object. To make use of these packages you may need to create one of these
+objects. Many of the parts of  `SingleCellExperiment` and `AnnData` objects are 
+equivalent and can be converted directly.
+
+```{r md-sce}
+sce <- SingleCellExperiment(
+    assays      = list(logcounts = t(py$adata$X)),
+    colData     = py$adata$obs,
+    rowData     = py$adata$var,
+    reducedDims = list(umap = py$adata$obsm["X_umap"])
+)
+sce
+```
+
+Note that we haven't copied everything to our new `SingleCellExperiment` but
+only what is directly mappable and most likely to be useful. If you need some of
+the other information stored in the `AnnData` object it should be possible to
+transfer that as well but you would need to decide where it best fits in the
+`SingleCellExperiment`. We have also made some decisions about how to name
+things. For example we have stored the main `X` expression matrix in the
+`logcounts` assay as this represents a similar transformation of the expression
+data and functions in some packages expect this assay to exist.
+
+To show that we can use this object let's plot our UMAP again in R using the
+[**{scater}**][scater] package.
+
+```{r md-r-umap}
+plotReducedDim(sce, "umap", colour_by = "louvain")
+```
+
+Because the embedding has already been calculated in Scanpy we use the
+`scater::plotReducedDim()` function here but we could also ask **{scater}**
+to computer new embeddings for us.
+
+### Creating a `Seurat` object from `AnnData`
+
+The other object that is often used by R scRNA-seq analysis packages is the
+[`Seurat`][seurat] object. We can create one of these in a similar way. Please
+see the [**{Seurat}** documentation][seurat] for more details about this object.
+
+```{r md-seurat}
+# Get the expression matrix
+exprs <- t(py$adata$X)
+colnames(exprs) <- py$adata$obs_names$to_list()
+rownames(exprs) <- py$adata$var_names$to_list()
+# Create the Seurat object
+seurat <- CreateSeuratObject(exprs)
+# Set the expression assay
+seurat <- SetAssayData(seurat, "data", exprs)
+# Add observation metadata
+seurat <- AddMetaData(seurat, py$adata$obs)
+# Add fetaure metadata
+seurat[["RNA"]][["n_cells"]] <- py$adata$var["n_cells"]
+# Add embedding
+embedding <- py$adata$obsm["X_umap"]
+rownames(embedding) <- py$adata$obs_names$to_list()
+colnames(embedding) <- c("umap_1", "umap_2")
+seurat[["umap"]] <- CreateDimReducObject(embedding, key = "umap_")
+
+seurat
+```
+
+The process for creating a `Seurat` object is more complex that creating a
+`SingleCellExperiment` and requires creating several other objects. The
+`Seurat::CreateSeuratObject()` function expects a single matrix that contains
+raw count data. We don't have that here so we use the normalised expression
+matrix instead. If we did have counts it would be better to use those. `Seurat`
+objects can have multiple "assays" (the default is "RNA") which can each have
+three data representations ("counts", "data" and "scale.data"). We have placed
+the expression matrix in the "data" slot here but which is most appropriate
+depends on the data you are copying. Metadata for observations can be added
+using the `Seurat::AddMetaData()` function but feature metadata must be added
+manually to the correct assay. We also add a `DimReduc` object holding the UMAP
+embedding.
+
+> **NOTE:** The `Seurat::ReadH5AD()` function can be used to read the `.h5ad`
+> format commonly used to save `AnnData` objects to disk. This is another way
+> to convert between the formats and will produce a more complete conversion
+> at the cost of writing to disk.
+
+The functions in **{Seurat}** (and related packages) can now be used with this
+object. Let's recreate our UMAP plot:
+
+```{r md-seurat-umap}
+seurat <- SetIdent(seurat, value = "louvain")
+DimPlot(seurat, reduction = "umap")
+```
+
+Converting from R to Python
+---------------------------
+
+The reverse conversion can be done in a similar way. Just like there is a
+special `py` variable in the R session there is a special `r` variable in the
+Python section. Here is a quick example:
+
+```{r md-r-list2}
+another_list <- c("Some", "more", "things")
+```
+
+In Python the list looks like this.
+
+```{python}
+r.another_list
+```
+
+Notice that we use the `.` operator in Python rather than the `$` operator we
+used in R.
+
+### Creating `AnnData` from `SingleCellExperiment`
+
+Let's pretend we have completed some analysis in our R session and we want to
+transfer the results back to our `AnnData` object in the Python section.
+
+Because some of the parts of the `SingleCellExperiment` use non-standard classes
+(such as the Bioconductor `DataFrame` class) that can't be automatically
+converted by **{reticulate}** it is easiest to first extract the parts we want.
+
+```{r md-sce-extract}
+exprs <- assay(sce, "logcounts")
+col_data <- as.data.frame(colData(sce))
+row_data <- as.data.frame(rowData(sce))
+embedding <- reducedDim(sce, "umap")
+```
+
+We can then had any variables we want to our `AnnData` object in Python:
+
+```{python md-sce-add}
+adata.obs['sce_louvain'] = r.col_data['louvain']
+```
+
+We could also create a new `AnnData` object by transferring everything we
+extracted from the `SingleCellExperiment`:
+
+```{python md-adata-sce}
+adata_sce = sc.AnnData(X = r.exprs.T, obs = r.col_data, var = r.row_data)
+adata_sce.obsm['umap'] = r.embedding
+```
+
+This new `AnnData` can also be used with Scanpy.
+
+```{python md-adata-sce-umap}
+sc.pl.umap(adata_sce, color='louvain')
+```
+
+### Creating `AnnData` from `Seurat`
+
+The process for creating an `AnnData` object from a `Seurat` object is very
+similar. First we extract the parts we want:
+
+```{r md-seurat-extract}
+exprs <- GetAssayData(seurat)
+meta <- seurat[[]]
+feature_meta <- GetAssay(seurat)[[]]
+embedding <- Embeddings(seurat, "umap")
+```
+
+Then we can construct a new `AnnData` in a Python chunk.
+
+```{python md-AnnData-Seurat}
+adata_seurat = sc.AnnData(X = r.exprs.T, obs = r.meta, var = r.feature_meta)
+adata_seurat.obsm['umap'] = r.embedding
+```
+
+This object should also be compatible with Scanpy functions.
+
+```{python md-AnnData-Seurat-umap}
+sc.pl.umap(adata_seurat, color='louvain')
+```
+
+The **{reticulate}** approach
+=============================
+
+The **{reticulate}** approach involves calling Scanpy functions from an R
+session. This means that we keep everything inside a single R session and only
+need to write R code but the downside is we cannot directly copy examples that
+have been written in Python.
+
+We first need to load the R packages we need.
+
+```{r ret-libraries}
+suppressPackageStartupMessages({
+    library("reticulate")
+    library("ggplot2")
+    library("SingleCellExperiment")
+    library("scater")
+    library("Seurat")
+})
+```
+
+This time to load a Python package we don't use a Python chunk but we use the
+`reticulate::import()` function.
+
+```{r ret-import}
+sc <- import("scanpy")
+```
+
+Load data
+---------
+
+To load the dataset we will use the Scanpy `pbmc3k_processed()` function. To use
+this from R the syntax is mostly the same but we replace the "." characters
+between modules with the "$" operator in R.
+
+```{r ret-load-adata}
+adata <- sc$datasets$pbmc3k_processed()
+```
+
+If we print this object we should see the same output we saw in the
+corresponding Python chunk in the **R Markdown** approach.
+
+```{r ret-print-adata}
+adata
+```
+
+Using Scanpy functions
+----------------------
+
+Other Scanpy functions can be called from R in the same way. Here is an example
+adding another clustering resolution.
+
+```{r ret-umap}
+sc$tl$louvain(adata, resolution = 2, key_added = "louvain_2")
+
+colnames(adata$obs)
+```
+
+> **NOTE:** We don't show a plotting example here as the plot will appear in a
+> new window. It is still possible to use these function though.
+
+Converting from Python to R
+---------------------------
+
+Accessing parts of our `AnnData` object is simpler than it was with the
+**R Markdown** approach. We don't have to worry about a special variable we
+can just extract information from the `AnnData` using standard R operators. This
+works particularly well for those data structures that are automatically
+converted by **{reticulate}**.
+
+```{r ret-convert}
+head(adata$obs)
+
+head(adata$var)
+
+adata$X[1:5, 1:5]
+```
+
+We can also directly pass these objects to R functions:
+
+```{r ret-ggplot}
+ggplot(adata$obs, aes(x = n_counts, y = n_genes, colour = louvain)) +
+    geom_point()
+```
+
+Some objects cannot be converted automatically. In this case you need to ask
+**{reticulate}** to run some Python code to convert the object to a format
+R can understand. We can them get the result from the magic `py` variable.
+
+```{r ret-py-convert}
+py_run_string("draw_graph = r.adata.uns['draw_graph']")
+
+py$draw_graph
+```
+
+### Creating a `SingleCellExperiment` object from `AnnData`
+
+Creating a `SingleCellExperiment` is very similar to what we did in the
+**R Markdown** approach but with slightly simpler code.
+
+```{r ret-sce}
+sce <- SingleCellExperiment(
+    assays      = list(logcounts = t(adata$X)),
+    colData     = adata$obs,
+    rowData     = adata$var,
+    reducedDims = list(umap = adata$obsm["X_umap"])
+)
+sce
+```
+
+We can then use this object as normal:
+
+```{r ret-sce-umap}
+plotReducedDim(sce, "umap", colour_by = "louvain")
+```
+
+### Creating a `Seurat` object from `AnnData`
+
+The same is true when creating a `Seurat` object.
+
+```{r ret-Seurat}
+exprs <- t(adata$X)
+colnames(exprs) <- adata$obs_names$to_list()
+rownames(exprs) <- adata$var_names$to_list()
+# Create the Seurat object
+seurat <- CreateSeuratObject(exprs)
+# Set the expression assay
+seurat <- SetAssayData(seurat, "data", exprs)
+# Add observation metadata
+seurat <- AddMetaData(seurat, adata$obs)
+# Add fetaure metadata
+seurat[["RNA"]][["n_cells"]] <- adata$var["n_cells"]
+# Add embedding
+embedding <- adata$obsm["X_umap"]
+rownames(embedding) <- adata$obs_names$to_list()
+colnames(embedding) <- c("umap_1", "umap_2")
+seurat[["umap"]] <- CreateDimReducObject(embedding, key = "umap_")
+
+seurat
+```
+
+This should then function as a normal `Seurat` object:
+
+```{r ret-seurat-umap}
+seurat <- SetIdent(seurat, value = "louvain")
+DimPlot(seurat, reduction = "umap")
+```
+
+Converting from R to Python
+---------------------------
+
+Converting from R to Python is a bit different than when using the
+**{R Markdown}** approach as we can do everything in the R session in many
+cases.
+
+```{r ret-python-convert}
+var <- "n_genes"
+
+head(adata$obs[var])
+```
+
+When this doesn't work we can use the magic `r` variable with the 
+`reticulate::py_run_string()` function (as shown before) or the
+`reticulate::py_eval()` function. Which one to use depends on what you are
+trying to do.
+
+```{r ret-python-convert-r}
+py_eval("r.adata.obs[r.var].head()")
+```
+
+### Creating `AnnData` from `SingleCellExperiment`
+
+Because we are working only in R we don't need to first extract and convert
+the part of the `SingleCellExperiment` we want before creating a new `AnnData`.
+Instead we can do everthing at once.
+
+```{r ret-python-AnnData-SCE}
+adata_sce <- sc$AnnData(
+    X   = t(logcounts(sce)),
+    obs = as.data.frame(colData(sce)),
+    var = as.data.frame(rowData(sce))
+)
+adata_sce$obsm$update(umap = reducedDim(sce, "umap"))
+
+adata_sce
+```
+
+### Creating `AnnData` from `Seurat`
+
+The same is true when creating a new `AnnData` from a `Seurat` object.
+
+```{r ret-python-AnnData-Seurat}
+adata_seurat <- sc$AnnData(
+    X   = t(GetAssayData(seurat)),
+    obs = seurat[[]],
+    var = GetAssay(seurat)[[]]
+)
+adata_seurat$obsm$update(umap = Embeddings(seurat, "umap"))
+
+adata_seurat
+```
+
+[scanpy-docs]: https://scanpy.readthedocs.io/en/latest/ "Scanpy documentation"
+[scanpy-pub]: https://doi.org/10.1186/s13059-017-1382-0 "Scanpy publication"
+[renv]: https://rstudio.github.io/renv/ "renv documentation"
+[reticulate]: https://rstudio.github.io/reticulate/ "reticulate documentation"
+[rpy2]: https://rpy2.github.io/ "rpy2 website"
+[r-markdown]: https://rmarkdown.rstudio.com/ "R Markdown website"
+[pbmc3k-tutorial]: https://scanpy-tutorials.readthedocs.io/en/latest/pbmc3k.html "Scanpy PBMC3K tutorial"
+[anndata]: https://anndata.readthedocs.io/en/stable/ "AnnData documentation"
+[bioconductor]: https://bioconductor.org/ "Bioconductor website"
+[sce]: https://www.bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html "SingleCellExperiment package on Bioconductor"
+[scater]: https://www.bioconductor.org/packages/release/bioc/html/scater.html "scater package on Bioconductor"
+[seurat]: https://satijalab.org/seurat/ "Seurat website"
