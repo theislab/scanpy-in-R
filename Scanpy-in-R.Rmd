@@ -504,8 +504,209 @@ adata_seurat.obsm['umap'] = r.embedding
 
 This object should also be compatible with Scanpy functions.
 
-```{python}
+```{python md-AnnData-Seurat-umap}
 sc.pl.umap(adata_seurat, color='louvain')
+```
+
+The **{reticulate}** approach
+=============================
+
+The **{reticulate}** approach involves calling Scanpy functions from an R
+session. This means that we keep everything inside a single R session and only
+need to write R code but the downside is we cannot directly copy examples that
+have been written in Python.
+
+We first need to load the R packages we need.
+
+```{r ret-libraries}
+suppressPackageStartupMessages({
+    library("reticulate")
+    library("ggplot2")
+    library("SingleCellExperiment")
+    library("scater")
+    library("Seurat")
+})
+```
+
+This time to load a Python package we don't use a Python chunk but we use the
+`reticulate::import()` function.
+
+```{r ret-import}
+sc <- import("scanpy")
+```
+
+Load data
+---------
+
+To load the dataset we will use the Scanpy `pbmc3k_processed()` function. To use
+this from R the syntax is mostly the same but we replace the "." characters
+between modules with the "$" operator in R.
+
+```{r ret-load-adata}
+adata <- sc$datasets$pbmc3k_processed()
+```
+
+If we print this object we should see the same output we saw in the
+corresponding Python chunk in the **R Markdown** approach.
+
+```{r ret-print-adata}
+adata
+```
+
+Using Scanpy functions
+----------------------
+
+Other Scanpy functions can be called from R in the same way. Here is an example
+adding another clustering resolution.
+
+```{r ret-umap}
+sc$tl$louvain(adata, resolution = 2, key_added = "louvain_2")
+
+colnames(adata$obs)
+```
+
+> **NOTE:** We don't show a plotting example here as the plot will appear in a
+> new window. It is still possible to use these function though.
+
+Converting from Python to R
+---------------------------
+
+Accessing parts of our `AnnData` object is simpler than it was with the
+**R Markdown** approach. We don't have to worry about a special variable we
+can just extract information from the `AnnData` using standard R operators. This
+works particularly well for those data structures that are automatically
+converted by **{reticulate}**.
+
+```{r ret-convert}
+head(adata$obs)
+
+head(adata$var)
+
+adata$X[1:5, 1:5]
+```
+
+We can also directly pass these objects to R functions:
+
+```{r ret-ggplot}
+ggplot(adata$obs, aes(x = n_counts, y = n_genes, colour = louvain)) +
+    geom_point()
+```
+
+Some objects cannot be converted automatically. In this case you need to ask
+**{reticulate}** to run some Python code to convert the object to a format
+R can understand. We can them get the result from the magic `py` variable.
+
+```{r ret-py-convert}
+py_run_string("draw_graph = r.adata.uns['draw_graph']")
+
+py$draw_graph
+```
+
+### Creating a `SingleCellExperiment` object from `AnnData`
+
+Creating a `SingleCellExperiment` is very similar to what we did in the
+**R Markdown** approach but with slightly simpler code.
+
+```{r ret-sce}
+sce <- SingleCellExperiment(
+    assays      = list(logcounts = t(adata$X)),
+    colData     = adata$obs,
+    rowData     = adata$var,
+    reducedDims = list(umap = adata$obsm["X_umap"])
+)
+sce
+```
+
+We can then use this object as normal:
+
+```{r ret-sce-umap}
+plotReducedDim(sce, "umap", colour_by = "louvain")
+```
+
+### Creating a `Seurat` object from `AnnData`
+
+The same is true when creating a `Seurat` object.
+
+```{r ret-Seurat}
+exprs <- t(adata$X)
+colnames(exprs) <- adata$obs_names$to_list()
+rownames(exprs) <- adata$var_names$to_list()
+# Create the Seurat object
+seurat <- CreateSeuratObject(exprs)
+# Set the expression assay
+seurat <- SetAssayData(seurat, "data", exprs)
+# Add observation metadata
+seurat <- AddMetaData(seurat, adata$obs)
+# Add fetaure metadata
+seurat[["RNA"]][["n_cells"]] <- adata$var["n_cells"]
+# Add embedding
+embedding <- adata$obsm["X_umap"]
+rownames(embedding) <- adata$obs_names$to_list()
+colnames(embedding) <- c("umap_1", "umap_2")
+seurat[["umap"]] <- CreateDimReducObject(embedding, key = "umap_")
+
+seurat
+```
+
+This should then function as a normal `Seurat` object:
+
+```{r ret-seurat-umap}
+seurat <- SetIdent(seurat, value = "louvain")
+DimPlot(seurat, reduction = "umap")
+```
+
+Converting from R to Python
+---------------------------
+
+Converting from R to Python is a bit different than when using the
+**{R Markdown}** approach as we can do everything in the R session in many
+cases.
+
+```{r ret-python-convert}
+var <- "n_genes"
+
+head(adata$obs[var])
+```
+
+When this doesn't work we can use the magic `r` variable with the 
+`reticulate::py_run_string()` function (as shown before) or the
+`reticulate::py_eval()` function. Which one to use depends on what you are
+trying to do.
+
+```{r ret-python-convert-r}
+py_eval("r.adata.obs[r.var].head()")
+```
+
+### Creating `AnnData` from `SingleCellExperiment`
+
+Because we are working only in R we don't need to first extract and convert
+the part of the `SingleCellExperiment` we want before creating a new `AnnData`.
+Instead we can do everthing at once.
+
+```{r ret-python-AnnData-SCE}
+adata_sce <- sc$AnnData(
+    X   = t(logcounts(sce)),
+    obs = as.data.frame(colData(sce)),
+    var = as.data.frame(rowData(sce))
+)
+adata_sce$obsm$update(umap = reducedDim(sce, "umap"))
+
+adata_sce
+```
+
+### Creating `AnnData` from `Seurat`
+
+The same is true when creating a new `AnnData` from a `Seurat` object.
+
+```{r ret-python-AnnData-Seurat}
+adata_seurat <- sc$AnnData(
+    X   = t(GetAssayData(seurat)),
+    obs = seurat[[]],
+    var = GetAssay(seurat)[[]]
+)
+adata_seurat$obsm$update(umap = Embeddings(seurat, "umap"))
+
+adata_seurat
 ```
 
 [scanpy-docs]: https://scanpy.readthedocs.io/en/latest/ "Scanpy documentation"
