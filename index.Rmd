@@ -13,7 +13,7 @@ Introduction
 What is Scanpy?
 ---------------
 
-The ***scanpy*** package is a scalable Python toolkit for analyzing single-cell
+The ***scanpy*** package is a scalable Python toolkit for analysing single-cell
 gene expression data. It includes functionality commonly used during an analysis
 of scRNA-seq data including quality control, clustering of cells and testing for
 marker genes. For more information please have a look at the
@@ -83,12 +83,38 @@ Setting up
 
 To use ***scanpy*** from R you will (unsurprisingly) need both an R and Python
 environment set up. If you are mostly an R user the easiest approach is to use
-the **{renv}** package to setup and manage these environments. This is what we
+the **{renv}** package to set up and manage these environments. This is what we
 will do for this tutorial. If you are primarily a Python user you may find it
 easier to create your own **conda** or **virtualenv** environment. The main
 thing is to have both R and Python available (with the required packages
 installed), however it is highly recommended you use some kind of environment
-system to improve the reproducibilty of your project.
+system to improve the reproducibility of your project.
+
+> **What is an environment?**
+>
+> An environment refers to all the software packages and versions that you
+> currently have access to. Usually this is whatever is available on the main
+> path of your computer which is referred to as the _global_ or _system_
+> environment. However there are several advantages to maintaining more control
+> over the environment you are using.
+>
+> Imagine you are using a software tool which depends on **pkgA v1**. What if
+> you want to install another tool that depends on **pkgA v2**? You could either
+> update **pkgA** which means the first tool would stop working or keep the
+> current version and not be able to use the second tool. This is the problem
+> that environment managers try to solve by allowing you to create isolated
+> environments with specific package versions installed. This means we could
+> have an environment with **pkgA v1** installed for the first tool and switch
+> to another environment with **pkgA v2** installed when we want to use the
+> second tool. For Python the two most commonly used environment managers are 
+> [**virtualenv**][virtualenv] and [**conda**][conda].
+>
+> Environments can also help improve reproducibility by recording the specific
+> versions of packages that are used for a project. This means that if someone
+> else was to use your project they would install the same version and (should)
+> get the same results. As the R language is more focused on interactive data 
+> analysis solving this problem is the goal of the R environment management 
+> package [**{renv}**][renv].
 
 Using **{renv}**
 ----------------
@@ -107,7 +133,7 @@ To use **{renv}** we first need to make sure it is installed:
 install.packages("renv")
 ```
 
-We can then ask **{renv}** to create an envronment for us:
+We can then ask **{renv}** to create an environment for us:
 
 ```{r renv-init, eval = FALSE}
 renv::init()
@@ -140,7 +166,7 @@ Python environments from R. For more details see the
 [**{reticulate}** documentation][reticulate].
 
 Once **{reticulate}** is installed we can tell **{renv}** that we also want to
-use a Python evironment:
+use a Python environment:
 
 ```{r use-python, eval = FALSE}
 renv::use_python()
@@ -148,7 +174,7 @@ renv::use_python()
 
 Unless you specify a Python version with the `python` argument or the
 `RETICULATE_PYTHON` environment variable is set your default Python installation
-will be used. By default yhe type of environment created depends on your
+will be used. By default the type of environment created depends on your
 operating system (**virtualenv** on Linux/macOS or **conda** on Windows) but if
 you have a preference this can be controlled using the `type` argument.
 
@@ -257,7 +283,7 @@ First let's work through the **R Markdown** approach. We won't cover the all the
 basics of **R Markdown** documents so if you haven't used them before you may
 want to work through an introductory tutorial first.
 
-We will start by loading some R libaries.
+We will start by loading some R libraries.
 
 ```{r md-libs}
 suppressPackageStartupMessages({
@@ -271,7 +297,7 @@ suppressPackageStartupMessages({
 
 We will also import ***scanpy*** in a Python chunk. A Python chunk begins with
 ```` ```{python} ```` instead of ```` ```{r} ````. If you are using RStudio you
-can easily create on by clickin `Insert > Python` in the **R Markdown** editor
+can easily create on by clicking `Insert > Python` in the **R Markdown** editor
 pane.
 
 ```{python md-py-libs}
@@ -730,7 +756,7 @@ py_eval("r.adata.obs[r.var].head()")
 
 Because we are working only in R we don't need to first extract and convert
 the part of the `SingleCellExperiment` we want before creating a new `AnnData`.
-Instead we can do everthing at once.
+Instead we can do everything at once.
 
 ```{r ret-python-AnnData-SCE}
 adata_sce <- sc$AnnData(
@@ -760,6 +786,8 @@ adata_seurat
 
 [scanpy-docs]: https://scanpy.readthedocs.io/en/latest/ "Scanpy documentation"
 [scanpy-pub]: https://doi.org/10.1186/s13059-017-1382-0 "Scanpy publication"
+[virtualenv]: https://virtualenv.pypa.io/en/latest/ "virtualenv documentation"
+[conda]: https://docs.conda.io/en/latest/ "Conda documentation"
 [renv]: https://rstudio.github.io/renv/ "renv documentation"
 [reticulate]: https://rstudio.github.io/reticulate/ "reticulate documentation"
 [rpy2]: https://rpy2.github.io/ "rpy2 website"
