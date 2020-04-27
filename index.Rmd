@@ -784,6 +784,50 @@ adata_seurat$obsm$update(umap = Embeddings(seurat, "umap"))
 adata_seurat
 ```
 
+Environments
+============
+
+Session information
+-------------------
+
+Details of the R session when building this tutorial.
+
+<details><summary>Click here</summary>
+
+```{r session-info}
+sessioninfo::session_info()
+```
+
+</details>
+
+R environment
+-------------
+
+R packages installed in the repository for this tutorial. Note that some of
+these are only requried to build the HTML output document and are not required
+to run the code in the tutorial.
+
+<details><summary>Click here</summary>
+
+```{r r-pkgs}
+cat(paste(readLines("renv.lock"), collapse = "\n"))
+```
+
+</details>
+
+Python environment
+------------------
+
+Python packages installed in the repository for this tutorial.
+
+<details><summary>Click here</summary>
+
+```{r py-pkgs}
+cat(paste(readLines("environment.yml"), collapse = "\n"))
+```
+
+</details>
+
 [scanpy-docs]: https://scanpy.readthedocs.io/en/latest/ "Scanpy documentation"
 [scanpy-pub]: https://doi.org/10.1186/s13059-017-1382-0 "Scanpy publication"
 [virtualenv]: https://virtualenv.pypa.io/en/latest/ "virtualenv documentation"
