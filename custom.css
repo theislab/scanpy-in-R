@@ -14,7 +14,7 @@ h1,h2,h3,h4,h5,h6,legend{
     color: #272525;
 }
 
-#nav-top span.glyphicon {
+#nav-top .glyphicon {
   color: #22983B;
 }
 
@@ -22,7 +22,9 @@ h1,h2,h3,h4,h5,h6,legend{
     background: #343131;
 }
 
-#sidebar h2{
+#sidebar h2 {
+    color: transparent;
+    font-size: 0;
     background: #343131;
 }
 
@@ -38,6 +40,11 @@ h1,h2,h3,h4,h5,h6,legend{
 #main a {
     background-image: linear-gradient(180deg,#d64a70,#d64a70);
     color:#c7254e;
+}
+
+#header .title {
+    color: transparent;
+    font-size: 0;
 }
 
 a:hover{

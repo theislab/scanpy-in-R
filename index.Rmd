@@ -1,5 +1,5 @@
 ---
-title: "Scanpy in R"
+title: 'Scanpy in R <img src="logo.png"></img>'
 date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:
