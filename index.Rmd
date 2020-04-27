@@ -1,5 +1,6 @@
 ---
 title: "Scanpy in R"
+date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:
     highlight: pygments

@@ -28,6 +28,11 @@ h1,h2,h3,h4,h5,h6,legend{
 
 #postamble {
     background: #272525;
+    border: #272525;
+}
+
+#postamble .date{
+    color: #ffffff;
 }
 
 #main a {
